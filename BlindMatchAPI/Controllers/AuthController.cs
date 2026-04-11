@@ -93,6 +93,34 @@ namespace BlindMatchAPI.Controllers
             });
         }
 
+        // POST: api/auth/setup-admin (run once to create admin)
+        [HttpPost("setup-admin")]
+        public async Task<IActionResult> SetupAdmin()
+        {
+            var adminEmail = "admin@blindmatch.com";
+            var existing = await _userManager.FindByEmailAsync(adminEmail);
+            if (existing != null)
+                return BadRequest("Admin already exists.");
+
+            var admin = new ApplicationUser
+            {
+                FullName = "Module Leader",
+                Email = adminEmail,
+                UserName = adminEmail,
+                Role = "ModuleLeader"
+            };
+
+            var result = await _userManager.CreateAsync(admin, "Admin123!");
+            if (!result.Succeeded)
+                return BadRequest(result.Errors);
+
+            if (!await _roleManager.RoleExistsAsync("ModuleLeader"))
+                await _roleManager.CreateAsync(new IdentityRole("ModuleLeader"));
+
+            await _userManager.AddToRoleAsync(admin, "ModuleLeader");
+            return Ok("Admin created. Email: admin@blindmatch.com / Password: Admin123!");
+        }
+
         // Helper: Generate JWT Token
         private string GenerateJwtToken(ApplicationUser user, string role)
         {
