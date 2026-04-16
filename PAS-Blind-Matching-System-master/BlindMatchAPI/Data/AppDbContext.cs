@@ -15,6 +15,7 @@ namespace BlindMatchAPI.Data
         public DbSet<ResearchArea> ResearchAreas { get; set; }
         public DbSet<Match> Matches { get; set; }
         public DbSet<SupervisorPreference> SupervisorPreferences { get; set; }
+       
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
