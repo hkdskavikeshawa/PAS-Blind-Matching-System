@@ -112,9 +112,19 @@ namespace BlindMatchAPI.Migrations
                     b.Property<int>("ProjectId")
                         .HasColumnType("int");
 
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("StudentInterested")
+                        .HasColumnType("bit");
+
                     b.Property<string>("SupervisorId")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
+
+                    b.Property<bool>("SupervisorInterested")
+                        .HasColumnType("bit");
 
                     b.HasKey("Id");
 
@@ -173,10 +183,6 @@ namespace BlindMatchAPI.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Name")
                         .IsRequired()
