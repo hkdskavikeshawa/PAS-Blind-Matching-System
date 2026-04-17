@@ -24,7 +24,7 @@ export default function ResearchAreas() {
   const [description, setDescription] = useState("");
 
   // Backend API URL - Verify if your port is 5047
-  const API_URL = "http://localhost:5047/api/ResearchArea";
+  const API_URL = "http://localhost:5010/api/ResearchArea";
 
   // 1. Fetch Data
   const fetchCategories = async () => {
@@ -71,10 +71,10 @@ export default function ResearchAreas() {
 
     if (editing) {
       
-      await axios.put(`http://localhost:5047/api/ResearchArea/${editing.id}`, categoryData);
+      await axios.put(`http://localhost:5010/api/ResearchArea/${editing.id}`, categoryData);
       toast.success("Research area updated");
     } else {
-      await axios.post("http://localhost:5047/api/ResearchArea", categoryData);
+      await axios.post("http://localhost:5010/api/ResearchArea", categoryData);
       toast.success("Research area added");
     }
     

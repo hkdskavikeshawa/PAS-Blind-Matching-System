@@ -25,7 +25,7 @@ export default function AllocationOversight() {
   // 1. Fetch all projects from the database
   const fetchProjects = async () => {
     try {
-      const response = await axios.get("http://localhost:5047/api/Project");
+      const response = await axios.get("http://localhost:5010/api/Project");
       setProjects(response.data);
     } catch (error) {
       console.error(error);
@@ -38,7 +38,7 @@ export default function AllocationOversight() {
   // 2. Load supervisors specific to a research area when the dropdown is clicked
   const loadSupervisors = async (areaName: string) => {
     try {
-      const response = await axios.get(`http://localhost:5047/api/Project/suitable-supervisors-by-name?areaName=${areaName}`);
+      const response = await axios.get(`http://localhost:5010/api/Project/suitable-supervisors-by-name?areaName=${areaName}`);
       setSuitableSupervisors(response.data);
     } catch (error) {
       console.error(error);
@@ -49,7 +49,7 @@ export default function AllocationOversight() {
   // 3. Function to handle the reassignment of a supervisor to a project
   const handleReassign = async (projectId: number, supervisorId: string) => {
     try {
-      const response = await axios.put("http://localhost:5047/api/Project/reassign", {
+      const response = await axios.put("http://localhost:5010/api/Project/reassign", {
         projectId: projectId,
         supervisorId: supervisorId
       });
