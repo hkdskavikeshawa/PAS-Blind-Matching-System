@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BlindMatchAPI.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260415041650_AddDescriptionToResearchArea")]
-    partial class AddDescriptionToResearchArea
+    [Migration("20260417185842_AddMatchInterestFields")]
+    partial class AddMatchInterestFields
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -115,9 +115,19 @@ namespace BlindMatchAPI.Migrations
                     b.Property<int>("ProjectId")
                         .HasColumnType("int");
 
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("StudentInterested")
+                        .HasColumnType("bit");
+
                     b.Property<string>("SupervisorId")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
+
+                    b.Property<bool>("SupervisorInterested")
+                        .HasColumnType("bit");
 
                     b.HasKey("Id");
 

@@ -203,9 +203,10 @@ namespace BlindMatchAPI.Controllers
                                        && p.Status == "Pending");
             if (project == null)
                 return NotFound("Project not found or no longer available.");
-
+            
             var existingMatch = await _context.Matches
-                .AnyAsync(m => m.ProjectId == projectId);
+                .AnyAsync(m => m.ProjectId == projectId && m.SupervisorId == supervisorId);
+            
             if (existingMatch)
                 return BadRequest("Already expressed interest in this project.");
 
@@ -213,9 +214,13 @@ namespace BlindMatchAPI.Controllers
             {
                 ProjectId = projectId,
                 SupervisorId = supervisorId,
+                SupervisorInterested = true,
+                StudentInterested = false,
+                Status = "pending",
                 IsRevealed = false,
                 CreatedAt = DateTime.UtcNow
-            };
+            
+        };
 
             project.Status = "Under Review";
             _context.Matches.Add(match);
@@ -225,6 +230,43 @@ namespace BlindMatchAPI.Controllers
             {
                 message = "Interest expressed successfully.",
                 matchId = match.Id
+            });
+        } 
+        
+        //POST: api/supervisor/confirm/{matchId}
+        [HttpPost("confirm/{matchId}")]
+        public async Task<IActionResult> ConfirmMatch(int matchId)
+        {
+            var supervisorId = GetSupervisorId();
+            if (supervisorId == null)
+                return Unauthorized("Invalid token.");
+
+            var match = await _context.Matches
+                .Include(m => m.Project)
+                .FirstOrDefaultAsync(m => m.Id == matchId && m.SupervisorId == supervisorId);
+
+            if (match == null)
+                return NotFound("Match not found.");
+
+            if (!match.SupervisorInterested || !match.StudentInterested)
+                return BadRequest("Both parties must show interest first.");
+
+            match.Status = "confirmed";
+            match.IsRevealed = true;
+
+            if (match.Project != null)
+            {
+                match.Project.Status = "Matched";
+            }
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                message = "Match confirmed and identity revealed.",
+                matchId = match.Id,
+                match.Status,
+                match.IsRevealed
             });
         }
     }
