@@ -51,11 +51,19 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(
             "http://localhost:3000",
+            "http://localhost:5173",
             "http://localhost:8080",
-            "https://localhost:8080",
-            "http://localhost:8083" // <--- Oyaage Frontend Port eka methanata damma
+            "http://localhost:8080",
+            "http://localhost:8081",
+            "http://localhost:8083",
+            "http://localhost:8086",
+            "http://localhost:8087",
+            "http://localhost:8088",
+            "http://localhost:8089",
+            "http://localhost:8085" 
         )
         .AllowAnyHeader()
+        .AllowCredentials()
         .AllowAnyMethod();
     });
 });
@@ -76,7 +84,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// UseCors aniwarenyenma UseAuthentication walata udin thiyenna ona
+// UseCors 
 app.UseCors("AllowReact");
 
 app.UseAuthentication();
