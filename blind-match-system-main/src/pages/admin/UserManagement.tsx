@@ -37,7 +37,7 @@ export default function UserManagement() {
   const [role, setRole] = useState("student");
 
   // API URL Configuration
-  const BASE_URL = "http://localhost:5047/api/admin";
+  const BASE_URL = "http://localhost:5010/api/admin";
   const API_URL = `${BASE_URL}/users`;
   const ADD_USER_URL = `${BASE_URL}/add-user`;
 

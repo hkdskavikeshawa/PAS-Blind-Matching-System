@@ -18,7 +18,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
 
   // API URL (Configured for Backend Port 5047)
-  const STATS_URL = "http://localhost:5047/api/Dashboard/stats";
+  const STATS_URL = "http://localhost:5010/api/Dashboard/stats";
 
   // Function to fetch data from the Database
   const fetchStats = async () => {
