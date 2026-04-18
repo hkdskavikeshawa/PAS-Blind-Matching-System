@@ -5,47 +5,21 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { EyeOff, Check, Eye } from "lucide-react";
 import { toast } from "sonner";
-
-interface BlindProposal {
-  id: number;
-  title: string;
-  abstract: string;
-  techStack: string;
-  status: string;
-  researchArea: string;
-  researchAreaId: number;
-}
+import { supervisorService, BlindProposal } from "@/services/supervisorService";
 
 export default function BlindReview() {
-  const token = localStorage.getItem("blindmatch_token");
   const [proposals, setProposals] = useState<BlindProposal[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedProposal, setSelectedProposal] = useState<BlindProposal | null>(null);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const API_URL = import.meta.env.VITE_API_URL;
-
   useEffect(() => {
-    const fetchProposals = async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/Supervisor/blind-review`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        if (data.proposals) {
-          setProposals(data.proposals);
-        } else {
-          setProposals(data);
-        }
-      } catch (error) {
-        toast.error("Failed to load proposals");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (token) fetchProposals();
+    supervisorService
+      .getBlindReviewProposals()
+      .then(setProposals)
+      .catch(() => toast.error("Failed to load proposals"))
+      .finally(() => setLoading(false));
   }, []);
 
   const handleExpressInterest = async () => {
@@ -53,23 +27,11 @@ export default function BlindReview() {
     setSubmitting(true);
 
     try {
-      const res = await fetch(
-        `${API_URL}/api/Supervisor/express-interest/${selectedProposal.id}`,
-        {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
-
-      if (res.ok) {
-        setProposals(proposals.filter((p) => p.id !== selectedProposal.id));
-        toast.success("Interest expressed successfully!");
-      } else {
-        const error = await res.text();
-        toast.error(error || "Failed to express interest");
-      }
-    } catch {
-      toast.error("Something went wrong");
+      await supervisorService.expressInterest(selectedProposal.id);
+      setProposals(proposals.filter((p) => p.id !== selectedProposal.id));
+      toast.success("Interest expressed successfully!");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to express interest");
     } finally {
       setSubmitting(false);
       setShowConfirmDialog(false);
