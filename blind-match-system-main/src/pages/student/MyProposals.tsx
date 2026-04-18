@@ -1,21 +1,31 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { PROPOSALS, RESEARCH_AREAS, USERS } from "@/data/mock-data";
-import { useAuth } from "@/contexts/AuthContext";
+import { proposalService, BackendProject } from "@/services/proposalService";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, FileText, Eye } from "lucide-react";
-import { ProposalStatus } from "@/types/pas";
+import { toast } from "sonner";
 
-const STATUS_STYLES: Record<ProposalStatus, string> = {
+type DisplayStatus = "pending" | "under_review" | "matched" | "withdrawn";
+
+const mapStatus = (backendStatus: string): DisplayStatus => {
+  switch (backendStatus) {
+    case "Under Review": return "under_review";
+    case "Matched": return "matched";
+    case "Withdrawn": return "withdrawn";
+    default: return "pending";
+  }
+};
+
+const STATUS_STYLES: Record<DisplayStatus, string> = {
   pending: "bg-status-pending/15 text-status-pending border-status-pending/30",
   under_review: "bg-status-review/15 text-status-review border-status-review/30",
   matched: "bg-status-matched/15 text-status-matched border-status-matched/30",
   withdrawn: "bg-muted text-muted-foreground border-muted",
 };
 
-const STATUS_LABELS: Record<ProposalStatus, string> = {
+const STATUS_LABELS: Record<DisplayStatus, string> = {
   pending: "Pending",
   under_review: "Under Review",
   matched: "Matched",
@@ -23,9 +33,24 @@ const STATUS_LABELS: Record<ProposalStatus, string> = {
 };
 
 export default function MyProposals() {
-  const { user } = useAuth();
-  const myProposals = PROPOSALS.filter((p) => p.studentId === user?.id);
+  const [proposals, setProposals] = useState<BackendProject[]>([]);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    proposalService
+      .getMyProposals()
+      .then(setProposals)
+      .catch(() => toast.error("Failed to load proposals"))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-40">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+      </div>
+    );
+  }
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
@@ -40,7 +65,7 @@ export default function MyProposals() {
         </Link>
       </div>
 
-      {myProposals.length === 0 ? (
+      {proposals.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="py-12 text-center">
             <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
@@ -49,20 +74,22 @@ export default function MyProposals() {
         </Card>
       ) : (
         <div className="grid gap-4">
-          {myProposals.map((proposal) => {
-            const area = RESEARCH_AREAS.find((a) => a.id === proposal.researchAreaId);
-            const supervisor = proposal.supervisorId ? USERS.find((u) => u.id === proposal.supervisorId) : null;
+          {proposals.map((proposal) => {
+            const status = mapStatus(proposal.status);
+            const techItems = proposal.techStack
+              ? proposal.techStack.split(",").map((t) => t.trim()).filter(Boolean)
+              : [];
 
             return (
               <Card key={proposal.id} className="hover:shadow-md transition-shadow">
                 <CardHeader className="pb-3">
                   <div className="flex items-start justify-between">
                     <div className="space-y-1">
-                      <p className="text-xs font-mono text-muted-foreground">{proposal.projectCode}</p>
+                      <p className="text-xs font-mono text-muted-foreground">#{proposal.id}</p>
                       <CardTitle className="text-lg">{proposal.title}</CardTitle>
                     </div>
-                    <Badge variant="outline" className={STATUS_STYLES[proposal.status]}>
-                      {STATUS_LABELS[proposal.status]}
+                    <Badge variant="outline" className={STATUS_STYLES[status]}>
+                      {STATUS_LABELS[status]}
                     </Badge>
                   </div>
                 </CardHeader>
@@ -70,7 +97,7 @@ export default function MyProposals() {
                   <p className="text-sm text-muted-foreground line-clamp-2">{proposal.abstract}</p>
 
                   <div className="flex flex-wrap gap-1.5">
-                    {proposal.techStack.map((tech) => (
+                    {techItems.map((tech) => (
                       <Badge key={tech} variant="secondary" className="text-xs font-mono">
                         {tech}
                       </Badge>
@@ -79,16 +106,13 @@ export default function MyProposals() {
 
                   <div className="flex items-center justify-between pt-2 border-t">
                     <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-xs">{area?.name}</Badge>
-                      <span className="text-xs text-muted-foreground">
-                        Submitted {new Date(proposal.createdAt).toLocaleDateString()}
-                      </span>
+                      <Badge variant="outline" className="text-xs">{proposal.researchArea}</Badge>
                     </div>
 
-                    {proposal.status === "matched" && supervisor && (
+                    {proposal.isMatched && proposal.supervisorName && (
                       <div className="text-right">
                         <p className="text-xs text-muted-foreground">Supervisor</p>
-                        <p className="text-sm font-medium text-status-matched">{supervisor.name}</p>
+                        <p className="text-sm font-medium text-status-matched">{proposal.supervisorName}</p>
                       </div>
                     )}
 
@@ -110,9 +134,9 @@ export default function MyProposals() {
         <CardContent className="py-4">
           <p className="text-xs font-medium text-muted-foreground mb-3">Status Timeline</p>
           <div className="flex items-center gap-2">
-            {(["pending", "under_review", "matched"] as ProposalStatus[]).map((s, i) => (
+            {(["pending", "under_review", "matched"] as DisplayStatus[]).map((s, i) => (
               <div key={s} className="flex items-center gap-2">
-                <div className={`h-3 w-3 rounded-full`} style={{
+                <div className="h-3 w-3 rounded-full" style={{
                   backgroundColor: s === "pending" ? "hsl(var(--status-pending))" :
                     s === "under_review" ? "hsl(var(--status-review))" : "hsl(var(--status-matched))"
                 }} />
