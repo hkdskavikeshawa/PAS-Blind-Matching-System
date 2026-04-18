@@ -1,4 +1,4 @@
-﻿using BlindMatchAPI.Data;
+using BlindMatchAPI.Data;
 using BlindMatchAPI.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -225,6 +225,72 @@ namespace BlindMatchAPI.Controllers
             {
                 message = "Interest expressed successfully.",
                 matchId = match.Id
+            });
+        }
+
+        //GET: api/supervisor/my-matches - View all projects where supervisor expressed interest
+        [HttpGet("my-matches")]
+        public async Task<IActionResult> GetMyMatches()
+        {
+            var supervisorId = GetSupervisorId();
+            if (supervisorId == null)
+                return Unauthorized("Invalid token.");
+
+            var matches = await _context.Matches
+                .Where(m => m.SupervisorId == supervisorId)
+                .Include(m => m.Project)
+                .ThenInclude(p => p.ResearchArea)
+                .Include(m => m.Project)
+                .ThenInclude(p => p.Student)
+                .Select(m => new
+                {
+                    matchId = m.Id,
+                    projectId = m.ProjectId,
+                    title = m.Project.Title,
+                    abstractText = m.Project.Abstract,
+                    techStack = m.Project.TechStack,
+                    status = m.Project.Status,
+                    researchArea = m.Project.ResearchArea.Name,
+                    isRevealed = m.IsRevealed,
+                    createdAt = m.CreatedAt,
+                    studentName = m.IsRevealed ? m.Project.Student.FullName : "Hidden",
+                    studentEmail = m.IsRevealed ? m.Project.Student.Email : null
+                })
+                .ToListAsync();
+
+            return Ok(matches);
+        }
+
+        //POST: api/supervisor/confirm-match/{matchId} - Finalize match and reveal identities
+        [HttpPost("confirm-match/{matchId}")]
+        public async Task<IActionResult> ConfirmMatch(int matchId)
+        {
+            var supervisorId = GetSupervisorId();
+            if (supervisorId == null)
+                return Unauthorized("Invalid token.");
+
+            var match = await _context.Matches
+                .Include(m => m.Project)
+                .ThenInclude(p => p.Student)
+                .FirstOrDefaultAsync(m => m.Id == matchId 
+                                       && m.SupervisorId == supervisorId);
+
+            if (match == null)
+                return NotFound("Match not found or you don't have access.");
+
+            if (match.IsRevealed)
+                return BadRequest("Match already confirmed.");
+
+            match.IsRevealed = true;
+            match.Project.Status = "Matched";
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                message = "Match confirmed! Identities revealed.",
+                studentName = match.Project.Student.FullName,
+                studentEmail = match.Project.Student.Email
             });
         }
     }
