@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { RESEARCH_AREAS, TECH_STACK_OPTIONS } from "@/data/mock-data";
+import { TECH_STACK_OPTIONS } from "@/data/mock-data";
+import { proposalService, BackendResearchArea } from "@/services/proposalService";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -17,6 +18,14 @@ export default function NewProposal() {
   const [abstract, setAbstract] = useState("");
   const [researchArea, setResearchArea] = useState("");
   const [selectedTech, setSelectedTech] = useState<string[]>([]);
+  const [researchAreas, setResearchAreas] = useState<BackendResearchArea[]>([]);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    proposalService.getResearchAreas().then(setResearchAreas).catch(() => {
+      toast.error("Failed to load research areas");
+    });
+  }, []);
 
   const addTech = (tech: string) => {
     if (!selectedTech.includes(tech)) setSelectedTech([...selectedTech, tech]);
@@ -26,14 +35,27 @@ export default function NewProposal() {
     setSelectedTech(selectedTech.filter((t) => t !== tech));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title || !abstract || !researchArea || selectedTech.length === 0) {
       toast.error("Please fill in all fields");
       return;
     }
-    toast.success("Proposal submitted successfully!");
-    navigate("/student/proposals");
+    setSubmitting(true);
+    try {
+      await proposalService.createProposal({
+        title,
+        abstract,
+        techStack: selectedTech,
+        researchAreaId: parseInt(researchArea),
+      });
+      toast.success("Proposal submitted successfully!");
+      navigate("/student/proposals");
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : "Failed to submit proposal");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -70,8 +92,8 @@ export default function NewProposal() {
               <Select value={researchArea} onValueChange={setResearchArea}>
                 <SelectTrigger><SelectValue placeholder="Select a research area" /></SelectTrigger>
                 <SelectContent>
-                  {RESEARCH_AREAS.map((area) => (
-                    <SelectItem key={area.id} value={area.id}>{area.name}</SelectItem>
+                  {researchAreas.map((area) => (
+                    <SelectItem key={area.id} value={String(area.id)}>{area.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -100,8 +122,10 @@ export default function NewProposal() {
             </div>
 
             <div className="flex gap-3 pt-4 border-t">
-              <Button type="submit" className="flex-1">Submit Proposal</Button>
-              <Button type="button" variant="outline" onClick={() => navigate(-1)}>Cancel</Button>
+              <Button type="submit" className="flex-1" disabled={submitting}>
+                {submitting ? "Submitting..." : "Submit Proposal"}
+              </Button>
+              <Button type="button" variant="outline" onClick={() => navigate(-1)} disabled={submitting}>Cancel</Button>
             </div>
           </CardContent>
         </Card>
